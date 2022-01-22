@@ -13,6 +13,13 @@ numMachineStart = StateMachine False [("0123456789", numMachinePreDecimal), ("."
 numMachinePreDecimal = StateMachine True [("0123456789", numMachinePreDecimal), (".", numMachinePostDecimal)]
 numMachinePostDecimal = StateMachine True [("0123456789", numMachinePostDecimal)]
 
+pureIntMachineStart = StateMachine False [("0123456789", pureIntMachineEnd)]
+pureIntMachineEnd = StateMachine True [("0123456789", pureIntMachineEnd)]
+
+moveMachine = StateMachine False [("m", StateMachine False [("o", StateMachine False [("v", StateMachine False [("e", StateMachine False [(" ", pureIntMachineStart)])])])])]
+
+deleteMachine = StateMachine False [("d", StateMachine False [("e", StateMachine False [("l", StateMachine False [("e", StateMachine False [("t", StateMachine False [("e", StateMachine False [(" ", pureIntMachineStart)])])])])])])]
+
 evalMachine :: String -> StateMachine -> Bool
 evalMachine [] (StateMachine isTerminal _) = isTerminal
 evalMachine (c:rest) (StateMachine isTerminal transitions) =
@@ -29,11 +36,29 @@ evalMachine (c:rest) (StateMachine isTerminal transitions) =
 stringHasChar :: String -> Char -> Bool
 stringHasChar s c = foldr (\subC b -> b || (c == subC)) False s
 
-toNum :: String -> Maybe BD.BigDecimal
-toNum s =
-  case (evalMachine s numMachineStart) of
-    True -> return (BD.fromString s)
-    False -> Nothing
+data Instruction
+  = Number
+  | Move
+  | Delete
+  | Nop
+
+data Parser a b = Parser StateMachine Instruction
+
+getType :: String -> Instruction
+getType s =
+  let getTypeHelper = (\parsers ->
+                         case parsers of
+                           ((Parser sm i):rest) ->
+                             case (evalMachine s sm) of
+                               True -> i
+                               False -> getTypeHelper rest
+                           [] -> Nop)
+  in getTypeHelper [Parser numMachineStart Number, Parser moveMachine Move, Parser deleteMachine Delete]
+
+getIntArg :: String -> Int
+getIntArg s =
+  let args = words s
+  in read (args !! 1)
 
 eval :: [BD.BigDecimal] -> String -> [BD.BigDecimal]
 eval (first:second:rest) "+" = [(second + first)] ++ rest 
@@ -41,10 +66,33 @@ eval (first:second:rest) "-" = [(second - first)] ++ rest
 eval (first:second:rest) "*" = [(second * first)] ++ rest 
 eval (first:second:rest) "/" = [(second / first)] ++ rest
 eval (first:rest) "dup" = [first, first] ++ rest
+eval (first:rest) "pop" = rest
+eval stack "clear" = []
 eval stack input =
-  case (toNum input) of
-    (Just num) -> [num] ++ stack
-    Nothing -> stack 
+  case (getType input) of
+    Number -> [(BD.fromString input)] ++ stack
+    Move ->
+      let moveHelper = (\targetIndex targetValue (te:tail) head ->
+                          case (targetIndex == 2) of
+                            True -> head ++ [te, targetValue] ++ tail
+                            False -> moveHelper (targetIndex - 1) targetValue tail (head ++ [te]))
+          index = getIntArg input
+      in case (index > (length stack) || index <= 1) of
+        True -> stack
+        False ->
+          case stack of
+            (targetValue:rest) -> moveHelper index targetValue rest []
+            _ -> stack
+    Delete ->
+      let deleteHelper = (\index (te:tail) head ->
+                            case (index == 1) of
+                              True -> head ++ tail
+                              False -> deleteHelper (index - 1) tail (head ++ [te]))
+          index = getIntArg input
+      in case (index > (length stack) || index == 0) of
+        True -> stack
+        False -> deleteHelper index stack []
+    Nop -> stack 
 
 printStack :: [BD.BigDecimal] -> IO ()
 printStack stack = printStackIndexed 1 stack
