@@ -11,8 +11,10 @@ repl :: [BD.BigDecimal] -> IO ()
 repl stack = do
   putStr "> "
   hFlush stdout
-  l <- getLine
-  let nStack = stack ++ [(BD.fromString l)]
-    in do
-    Lib.printStack nStack
-    repl nStack 
+  input <- getLine
+  case input of
+    "exit" -> return ()
+    input -> let nStack = Lib.eval stack input
+      in do
+      Lib.printStack nStack
+      repl nStack 
