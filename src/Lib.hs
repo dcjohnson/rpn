@@ -9,12 +9,18 @@ data StateMachine = StateMachine IsTerminal Transitions
 type IsTerminal = Bool
 type Transitions = [(String, StateMachine)]
 
-numMachineStart = StateMachine False [("0123456789", numMachinePreDecimal), (".", numMachinePostDecimal)]
-numMachinePreDecimal = StateMachine True [("0123456789", numMachinePreDecimal), (".", numMachinePostDecimal)]
-numMachinePostDecimal = StateMachine True [("0123456789", numMachinePostDecimal)]
+digits :: String
+digits = "0123456789"
 
-pureIntMachineStart = StateMachine False [("0123456789", pureIntMachineEnd)]
-pureIntMachineEnd = StateMachine True [("0123456789", pureIntMachineEnd)]
+dot :: String
+dot = "."
+
+numMachineStart = StateMachine False [(digits, numMachinePreDecimal), (dot, numMachinePostDecimal)]
+numMachinePreDecimal = StateMachine True [(digits, numMachinePreDecimal), (dot, numMachinePostDecimal)]
+numMachinePostDecimal = StateMachine True [(digits, numMachinePostDecimal)]
+
+pureIntMachineStart = StateMachine False [(digits, pureIntMachineEnd)]
+pureIntMachineEnd = StateMachine True [(digits, pureIntMachineEnd)]
 
 moveMachine = StateMachine False [("m", StateMachine False [("o", StateMachine False [("v", StateMachine False [("e", StateMachine False [(" ", pureIntMachineStart)])])])])]
 
@@ -67,6 +73,7 @@ eval (first:second:rest) "*" = [(second * first)] ++ rest
 eval (first:second:rest) "/" = [(second / first)] ++ rest
 eval (first:rest) "dup" = [first, first] ++ rest
 eval (first:rest) "pop" = rest
+eval (first:rest) "rot" = rest ++ [first]
 eval stack "clear" = []
 eval stack input =
   case (getType input) of
