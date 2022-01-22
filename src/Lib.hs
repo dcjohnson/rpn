@@ -67,10 +67,16 @@ getIntArg s =
   in read (args !! 1)
 
 eval :: [BD.BigDecimal] -> String -> [BD.BigDecimal]
-eval (first:second:rest) "+" = [(second + first)] ++ rest 
-eval (first:second:rest) "-" = [(second - first)] ++ rest
-eval (first:second:rest) "*" = [(second * first)] ++ rest 
-eval (first:second:rest) "/" = [(second / first)] ++ rest
+eval (first:second:rest) "+" = (second + first):rest 
+eval (first:second:rest) "-" = (second - first):rest
+eval (first:second:rest) "*" = (second * first):rest 
+eval (first:second:rest) "/" = (second / first):rest
+eval stack "^" =
+  case stack of
+    (BD.BigDecimal n f):second:rest ->
+      case (f == 0) of
+        True -> (second ^ n):rest
+        False -> stack
 eval (first:rest) "dup" = [first, first] ++ rest
 eval (first:rest) "pop" = rest
 eval (first:rest) "rot" = rest ++ [first]
@@ -79,12 +85,15 @@ eval stack input =
   case (getType input) of
     Number -> [(BD.fromString input)] ++ stack
     Move ->
-      let moveHelper = (\targetIndex targetValue (te:tail) head ->
-                          case (targetIndex == 2) of
-                            True -> head ++ [te, targetValue] ++ tail
-                            False -> moveHelper (targetIndex - 1) targetValue tail (head ++ [te]))
+      let moveHelper = (\targetIndex targetValue tail head ->
+                          case tail of
+                            (te:rTail) -> 
+                              case (targetIndex == 2) of
+                                True -> head ++ [te, targetValue] ++ rTail
+                                False -> moveHelper (targetIndex - 1) targetValue rTail (head ++ [te])
+                            [] -> targetValue:head)
           index = getIntArg input
-      in case (index > (length stack) || index <= 1) of
+      in case (index <= 1) of
         True -> stack
         False ->
           case stack of
