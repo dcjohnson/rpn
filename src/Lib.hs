@@ -102,10 +102,11 @@ eval stack input =
             (targetValue:rest) -> moveHelper index targetValue rest []
             _ -> stack
     Delete ->
-      let deleteHelper = (\index (te:tail) head ->
-                            case (index == 1) of
-                              True -> head ++ tail
-                              False -> deleteHelper (index - 1) tail (head ++ [te]))
+      let deleteHelper =
+            (\index (te:tail) head ->
+                case (index == 1) of
+                  True -> head ++ tail
+                  False -> deleteHelper (index - 1) tail (head ++ [te]))
           index = getIntArg input
       in case (index > (length stack) || index == 0) of
         True -> stack
