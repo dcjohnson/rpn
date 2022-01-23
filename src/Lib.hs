@@ -86,13 +86,14 @@ eval stack input =
   case (getType input) of
     Number -> [(BD.fromString input)] ++ stack
     Move ->
-      let moveHelper = (\targetIndex targetValue tail head ->
-                          case tail of
-                            (te:rTail) -> 
-                              case (targetIndex == 2) of
-                                True -> head ++ [te, targetValue] ++ rTail
-                                False -> moveHelper (targetIndex - 1) targetValue rTail (head ++ [te])
-                            [] -> targetValue:head)
+      let moveHelper =
+            (\targetIndex targetValue tail head ->
+                case tail of
+                  (te:rTail) -> 
+                    case (targetIndex == 2) of
+                      True -> head ++ [te, targetValue] ++ rTail
+                      False -> moveHelper (targetIndex - 1) targetValue rTail (head ++ [te])
+                  [] -> targetValue:head)
           index = getIntArg input
       in case (index <= 1) of
         True -> stack
