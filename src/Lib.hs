@@ -4,6 +4,7 @@ module Lib
     ) where
 
 import qualified Data.BigDecimal as BD
+import System.IO
 
 data StateMachine = StateMachine IsTerminal Transitions
 type IsTerminal = Bool
@@ -71,6 +72,22 @@ eval (first:second:rest) "+" = (second + first):rest
 eval (first:second:rest) "-" = (second - first):rest
 eval (first:second:rest) "*" = (second * first):rest 
 eval (first:second:rest) "/" = (second / first):rest
+eval stack "nroot" =
+  case stack of
+    (BD.BigDecimal n f):second:rest ->
+      case (f == 0) of
+        True ->
+          let nBD = BD.BigDecimal n f
+              newton = (\xK -> (xK - (BD.divide (((xK ^^ n) - second), (xK ^^ (n - 1)) * nBD) (BD.HALF_UP, Just 30))))
+              newtonPrecision = (\decimalPrecision x ->
+                                   let xK = newton x
+                                       xkdiff = abs (x - xK)
+                                   in case (xkdiff < decimalPrecision) of 
+                                     True -> xK
+                                     False -> newtonPrecision decimalPrecision xK)
+          in (newtonPrecision (BD.BigDecimal 1 30) (BD.BigDecimal 2 0)):rest
+        False -> stack
+    _ -> stack
 eval stack "^" =
   case stack of
     (BD.BigDecimal n f):second:rest ->
