@@ -72,6 +72,7 @@ eval (first:second:rest) "+" = (second + first):rest
 eval (first:second:rest) "-" = (second - first):rest
 eval (first:second:rest) "*" = (second * first):rest 
 eval (first:second:rest) "/" = (second / first):rest
+eval (first:second:rest) "flip" = second:first:rest
 eval stack "nroot" =
   case stack of
     (BD.BigDecimal n f):second:rest ->
