@@ -75,8 +75,9 @@ eval stack "^" =
   case stack of
     (BD.BigDecimal n f):second:rest ->
       case (f == 0) of
-        True -> (second ^ n):rest
+        True -> (second ^^ n):rest
         False -> stack
+    _ -> stack
 eval (first:rest) "dup" = [first, first] ++ rest
 eval (first:rest) "pop" = rest
 eval (first:rest) "rot" = rest ++ [first]
